@@ -1,0 +1,1 @@
+mongodb+srv://claudio:396350@gestor.cx5ls.mongodb.net/?retryWrites=true&w=majority&appName=Gestor
