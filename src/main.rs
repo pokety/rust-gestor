@@ -1,4 +1,5 @@
 use std::collections::{ HashMap, HashSet};
+use printers::{ get_default_printer,common::base::job::PrinterJobOptions};
 // use std::thread::sleep;
 // use std::time::Duration;
 use std::io::{stdout, Write};
@@ -29,7 +30,7 @@ use std::{fs, path::Path};
 use std::env::{self};
 
 use mongodb::{ bson::{doc, Document}, sync::{Client, Collection}};
-use inquire::{Text,error::InquireError, Select, validator::{ Validation}};
+use inquire::{Text,error::InquireError, Select,Confirm, validator::{ Validation}};
 use inline_colorization::*;
 #[macro_use]
 extern crate goto;
@@ -134,7 +135,6 @@ impl Preview {
         let mut concat: String=String::new();
         for i in self.arr.clone(){
             concat.push_str(format!("{} \n",i).as_str());
-            // println!("{}",i);
         }
         concat
 
@@ -712,8 +712,25 @@ fn imprimir(coll:Collection<Document> )-> Result<(), Box<dyn std::error::Error>>
                                 
                                 let _=run_app(skin.to_owned() ,gravar.as_str());
                                 //
-                                let _=fs::write(path,gravar); 
-                                
+                                let imprimir=Confirm::new("Imprimir")
+                                    .with_default(false)
+                                    .prompt().ok().unwrap();
+
+                                if imprimir == true {
+                                    let _=fs::write(path,&gravar); 
+                                    let default_printer = get_default_printer();
+                                    if default_printer.is_some() {
+                                        let _job_id = default_printer.unwrap().print(gravar.as_bytes(), PrinterJobOptions {
+                                            name: None,
+                                            // options are currently UNIX-only. see https://www.cups.org/doc/options.html
+                                            raw_properties: &[
+                                                ("document-format", "application/vnd.cups-raw"),
+                                                ("copies", "1"),
+                                            ],
+                                        });
+                                        // Err("...") or Ok(())
+    }
+                                }
                                 // doc.render_to_file(format!("{evento}.pdf")).expect("Failed to write PDF file");
                               
                                 std::process::Command::new("clear").status().unwrap();
@@ -725,7 +742,7 @@ fn imprimir(coll:Collection<Document> )-> Result<(), Box<dyn std::error::Error>>
                 }
 
             },
-            Err(_err)=>{
+            Err(_err)=>{ 
                 let _=main();
             }
         }

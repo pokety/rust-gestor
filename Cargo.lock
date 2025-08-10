@@ -1590,6 +1590,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "printers"
+version = "2.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9a1f07309b8dd1589167b705fa3b2c5d586e4f690d8044f242d699ff5648cdcc"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "printpdf"
 version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1783,6 +1792,7 @@ dependencies = [
  "inline_colorization",
  "inquire",
  "mongodb",
+ "printers",
  "serde",
  "termimad",
 ]
