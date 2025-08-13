@@ -627,7 +627,8 @@ fn imprimir(coll:Collection<Document> )-> Result<(), Box<dyn std::error::Error>>
                               
                                 std::process::Command::new("clear").status().unwrap();
 
-                                let _ =main();           
+                                let _ =main();   
+                                        
                     }
                 }
 
