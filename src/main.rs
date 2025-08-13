@@ -15,33 +15,6 @@ extern crate goto;
 ///mods
 
 
-fn zip_document_array(document:mongodb::sync::Cursor<Document>)->HashMap<std::string::String, Vec<i32>>{
-    
-    let mut lista_equipamento: HashMap<String, Vec<i32>> = HashMap::new();
-
-    for equipamento in document{
-        match equipamento { 
-            Ok(value) => {
-                if lista_equipamento.contains_key(value.get("modelo").unwrap().as_str().unwrap()) {
-                        
-                    if let Some(x) = lista_equipamento.get_mut(value.get("modelo").unwrap().as_str().unwrap()) {
-                        x.push(value.get("patrimonio").unwrap().as_str().unwrap().parse::<i32>().expect("errou carra"));
-                    }
-                    
-                }else{
-                    lista_equipamento.insert(value.get("modelo").unwrap().as_str().unwrap().to_string(),vec![value.get("patrimonio").unwrap().as_str().unwrap().parse::<i32>().expect("")] );
-                }
-            },
-            _error => {
-                std::process::Command::new("clear").status().unwrap();
-            }
-        }
-    }
-    
-    lista_equipamento
-
-}
-
 fn zip_vec_array(document:mongodb::sync::Cursor<Document>)-> Vec<(std::string::String, i32)>{
     
     let mut lista_equipamento: HashMap<String, Vec<i32>> = HashMap::new();
@@ -76,8 +49,6 @@ fn zip_vec_array(document:mongodb::sync::Cursor<Document>)-> Vec<(std::string::S
 }
 
 
-
-
 struct Preview {
     arr:Vec<String>
 }
@@ -105,9 +76,27 @@ impl Preview {
 
     }
 }
+
+struct ModeloQtyNow{
+    modelo:String,
+    qty:i8
+}
+
+impl ModeloQtyNow {
+    pub fn new()->ModeloQtyNow{
+        ModeloQtyNow { modelo: String::new(), qty: 0 }
+    }
+
+    pub fn update(&mut self,modelo:String,qty:i8){
+        self.modelo=modelo ;
+        self.qty=qty;
+    }
+}
+
+
 ////Saida
 fn saida(coll: Collection<Document>)-> Result<(), Box<dyn std::error::Error>>{
-    
+    let mut modelo_qty=ModeloQtyNow::new();
     let mut prev: Preview=Preview::new();
     let all = coll.find(doc! {}).run()?;    
     let mut eventos: Vec<String> = Vec::new();
@@ -160,17 +149,32 @@ fn saida(coll: Collection<Document>)-> Result<(), Box<dyn std::error::Error>>{
             loop {
                 std::process::Command::new("clear").status().unwrap();
                 prev.display_preview();
+
+                println!();
+                println!("QUANTIDADE:{color_green}{}{color_reset} ---> {color_cyan}{}{color_reset}",modelo_qty.qty,modelo_qty.modelo);
+                
+                println!("Evento:{color_yellow}{}{color_reset}",&event_d.as_ref().unwrap());
+                println!();
+
                 let query = Text::new("Patrimonio?").with_page_size(40).with_validator(validator)
                 .prompt();
-                
-                match query {
-                    Ok(query) => {
-                         let cursor = coll.find_one_and_update(doc! { "patrimonio":&query },doc! {"$set": doc! {"evento": &event_d.as_ref().unwrap(),"user":&select_usuario.as_ref().unwrap()}}).run()?;
+            
+            match query {
+                Ok(query) => {
+                    let cursor = coll.find_one_and_update(doc! { "patrimonio":&query },doc! {"$set": doc! {"evento": &event_d.as_ref().unwrap(),"user":&select_usuario.as_ref().unwrap()}}).run()?;
+
                         match &cursor {
                             Some(doc)=>{
                                 // println!(r"modelo:{color_cyan}{}{color_reset}", doc.get("modelo").unwrap().as_str().unwrap());
                                 prev.add_preview(format!(r"{color_green}{}{color_reset} -- {}",doc.get("patrimonio").unwrap().as_str().unwrap().to_string(),doc.get("modelo").unwrap().as_str().unwrap().to_string()));
+                                let qty_modelo=coll.find(doc! {
+                                    "$and": [
+                                        doc! { "modelo": { "$eq": doc.get("modelo").unwrap().as_str().unwrap().to_string() }},
+                                        doc! { "evento": { "$eq": &event_d.as_ref().unwrap() }}
+                                    ]
+                                }).run()?;
 
+                                modelo_qty.update(doc.get("modelo").unwrap().as_str().unwrap().to_string(), qty_modelo.count() as i8);
                             },
                             None =>{
                                 prev.add_preview(format!(r"{} --{color_red}Nao cadastrado!!!{color_reset}",&query));
@@ -194,6 +198,7 @@ Ok(())
 
 ////Entrada
 fn entrada(coll: Collection<Document>)-> Result<(), Box<dyn std::error::Error>>{
+    let mut prev: Preview=Preview::new();
     let validator = |input: &str| if input.chars().count() < 1 {
         std::process::Command::new("clear").status().unwrap();
         let _ =main();
@@ -207,7 +212,9 @@ fn entrada(coll: Collection<Document>)-> Result<(), Box<dyn std::error::Error>>{
     let mut status = true;
     
     while status {
-        
+        std::process::Command::new("clear").status().unwrap();
+        prev.display_preview();
+        println!();
         let query = Text::new("Patrimonio?").with_page_size(40).with_validator(validator)
         .prompt();
     
@@ -217,10 +224,13 @@ fn entrada(coll: Collection<Document>)-> Result<(), Box<dyn std::error::Error>>{
             
             match &cursor {
                 Some(doc)=>{
-                    println!(r"modelo:{color_cyan}{}{color_reset}", doc.get("modelo").unwrap().as_str().unwrap());
+                    prev.add_preview(format!(r"{color_green}{}{color_reset} {color_yellow} {}{color_reset} {color_green} {}{color_reset}",doc.get("patrimonio").unwrap().as_str().unwrap().to_string(),doc.get("evento").unwrap().as_str().unwrap().to_string(),doc.get("modelo").unwrap().as_str().unwrap().to_string()));
+                    // println!(r"modelo:{color_cyan}{}{color_reset}", doc.get("modelo").unwrap().as_str().unwrap());
+
                 },
                 None =>{
-                    println!(r"modelo:{color_red}Nao cadastrado!!!{color_reset}");
+                    prev.add_preview(format!(r"{} --{color_red}Nao cadastrado!!!{color_reset}",&query));
+                    // println!(r"modelo:{color_red}Nao cadastrado!!!{color_reset}");
                 }
             } 
         },
@@ -539,6 +549,7 @@ fn info(coll:Collection<Document> )-> Result<(), Box<dyn std::error::Error>>{
 
 
 fn imprimir(coll:Collection<Document> )-> Result<(), Box<dyn std::error::Error>>{
+    std::process::Command::new("clear").status().unwrap();
 
 
     let validator = |input: &str| if input.chars().count() < 1 {
@@ -608,7 +619,9 @@ fn imprimir(coll:Collection<Document> )-> Result<(), Box<dyn std::error::Error>>
                                 //
                                 let imprimir=Confirm::new("Imprimir")
                                     .with_default(false)
-                                    .prompt().ok().unwrap();
+                                    .prompt().inspect_err(|_f| {
+                                        let _=imprimir(coll);
+                                    }).ok().unwrap();
 
                                 if imprimir == true {
 
@@ -628,7 +641,7 @@ fn imprimir(coll:Collection<Document> )-> Result<(), Box<dyn std::error::Error>>
                                 std::process::Command::new("clear").status().unwrap();
 
                                 let _ =main();   
-                                        
+
                     }
                 }
 
