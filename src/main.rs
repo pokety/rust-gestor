@@ -1,32 +1,9 @@
 use std::collections::{ HashMap, HashSet};
 use printers::{ get_default_printer,common::base::job::PrinterJobOptions};
-// use std::thread::sleep;
-// use std::time::Duration;
-use std::io::{stdout, Write};
-use termimad::crossterm::{
-    cursor::{ Hide, Show},
-    event::{
-        self,
-        Event,
-        KeyEvent,
-        KeyCode::*,
-    },
-    queue,
-    terminal::{
-        self,
-        Clear,
-        ClearType,
-        EnterAlternateScreen,
-        LeaveAlternateScreen,
-    },
-    style::Color::*,
-};
-use termimad::*;
 
 use std::{thread, time};
 use std::io::{stdin};
 
-use std::{fs, path::Path};
 use std::env::{self};
 
 use mongodb::{ bson::{doc, Document}, sync::{Client, Collection}};
@@ -34,58 +11,9 @@ use inquire::{Text,error::InquireError, Select,Confirm, validator::{ Validation}
 use inline_colorization::*;
 #[macro_use]
 extern crate goto;
-// use genpdf::{elements, Element};
 
 ///mods
 
-fn view_area() -> Area {
-    let mut area = Area::full_screen();
-    area.pad_for_max_width(120); // we don't want a too wide text column
-    area
-}
-fn run_app(skin: MadSkin ,md :&str) -> Result<(), Error> {
-    let mut w = stdout(); // we could also have used stderr
-    queue!(w, EnterAlternateScreen)?;
-    terminal::enable_raw_mode()?;
-    queue!(w, Hide)?; // hiding the cursor
-    let mut view = MadView::from(md.to_owned(), view_area(), skin);
-    loop {
-        view.write_on(&mut w)?;
-        w.flush()?;
-        match event::read() {
-            Ok(Event::Key(KeyEvent{code, ..})) => {
-                match code {
-                    Up => view.try_scroll_lines(-1),
-                    Down => view.try_scroll_lines(1),
-                    PageUp => view.try_scroll_pages(-1),
-                    PageDown => view.try_scroll_pages(1),
-                    _ => break,
-                }
-            }
-            Ok(Event::Resize(..)) => {
-                queue!(w, Clear(ClearType::All))?;
-                view.resize(&view_area());
-            }
-            _ => {}
-        }
-    }
-    terminal::disable_raw_mode()?;
-    queue!(w, Show)?; // we must restore the cursor
-    queue!(w, LeaveAlternateScreen)?;
-    w.flush()?;
-    Ok(())
-}
-
-fn make_skin() -> MadSkin {
-    let mut skin = MadSkin::default();
-    skin.table.align = Alignment::Center;
-    skin.set_headers_fg(AnsiValue(178));
-    skin.bold.set_fg(Yellow);
-    skin.italic.set_fg(Magenta);
-    skin.scrollbar.thumb.set_fg(AnsiValue(178));
-    skin.code_block.align = Alignment::Center;
-    skin
-}
 
 fn zip_document_array(document:mongodb::sync::Cursor<Document>)->HashMap<std::string::String, Vec<i32>>{
     
@@ -109,8 +37,45 @@ fn zip_document_array(document:mongodb::sync::Cursor<Document>)->HashMap<std::st
             }
         }
     }
+    
     lista_equipamento
+
 }
+
+fn zip_vec_array(document:mongodb::sync::Cursor<Document>)-> Vec<(std::string::String, i32)>{
+    
+    let mut lista_equipamento: HashMap<String, Vec<i32>> = HashMap::new();
+
+    for equipamento in document{
+        match equipamento { 
+            Ok(value) => {
+                if lista_equipamento.contains_key(value.get("modelo").unwrap().as_str().unwrap()) {
+                        
+                    if let Some(x) = lista_equipamento.get_mut(value.get("modelo").unwrap().as_str().unwrap()) {
+                        x.push(value.get("patrimonio").unwrap().as_str().unwrap().parse::<i32>().expect("errou carra"));
+                    }
+                    
+                }else{
+                    lista_equipamento.insert(value.get("modelo").unwrap().as_str().unwrap().to_string(),vec![value.get("patrimonio").unwrap().as_str().unwrap().parse::<i32>().expect("")] );
+                }
+            },
+            _error => {
+                std::process::Command::new("clear").status().unwrap();
+            }
+        }
+    }
+    
+    let mut sorted : Vec<(String,i32)>=vec!();
+    for arr in lista_equipamento {
+        sorted.push((arr.0,arr.1.len() as i32));
+    }
+    let _=sorted.sort_by(|a, b| a.0.cmp(&b.0));
+    
+    sorted
+
+}
+
+
 
 
 struct Preview {
@@ -395,12 +360,6 @@ fn procurar(coll :&Collection<Document> ) -> Result<(), Box<dyn std::error::Erro
 
 //cadastrar
 fn cadastrar (coll:Collection<Document>  ) -> Result<(), Box<dyn std::error::Error>>{
-
-    // if let MyOption::Some(value) = none_value {
-    //     println!("Found a value: {}", value); // This will not print
-    // } else {
-    //     println!("No value found."); // This will print
-    // }
     
     let select_grupo  = Select::new("", vec!("IMAGEM".to_string(),"AUDIO".to_string(),"ENERGIA".to_string(),"COMUNICACAO".to_string()))
     .with_help_message(" ↑↓ ESCOLHA O GRUPO!!")
@@ -434,33 +393,6 @@ fn cadastrar (coll:Collection<Document>  ) -> Result<(), Box<dyn std::error::Err
     
     std::process::Command::new("clear").status().unwrap();
 
-    // let renderconfig=RenderConfig { 
-    //     prompt_prefix: Styled::new("______________________________"),
-    //         answered_prompt_prefix: Styled::new(""),
-    //         prompt: StyleSheet::empty(),
-    //         default_value: StyleSheet::empty(),
-    //         placeholder: StyleSheet::empty(),
-    //         help_message: StyleSheet::empty(),
-    //         text_input: StyleSheet::empty(),
-    //         error_message: ErrorMessageRenderConfig::empty(),
-    //         answer: StyleSheet::empty(),
-    //         canceled_prompt_indicator: Styled::new(""),
-    //         password_mask: '*',
-    //         highlighted_option_prefix: Styled::new(">"),
-    //         scroll_up_prefix: Styled::new("↑"),
-    //         scroll_down_prefix: Styled::new("↓"),
-    //         selected_checkbox: Styled::new("[x]"),
-    //         unselected_checkbox: Styled::new("[ ]"),
-    //         option_index_prefix: IndexPrefix::None,
-    //         option: StyleSheet::empty(),
-    //         selected_option: Some(StyleSheet { fg: Some(Color::LightGreen), bg: Some(Color::Rgb { r: 0, g: 0, b: 0 }), att: Attributes::BOLD }),
-
-    //         #[cfg(feature = "date")]
-    //         calendar: calendar::CalendarRenderConfig::empty(),
-
-    //         #[cfg(feature = "editor")]
-    //         editor_prompt: StyleSheet::empty(),
-    // };
 
     let select_modelo: Result<String, InquireError> = Select::new("", lista_modelo.into_iter().collect())
     // .with_render_config(renderconfig)
@@ -605,34 +537,8 @@ fn info(coll:Collection<Document> )-> Result<(), Box<dyn std::error::Error>>{
     Ok(())
 }
 
-// fn imprimir_pdf(coll:Collection<Document> )->Result<(),Box<dyn std::error::Error>>{
-
-//     let font_family = genpdf::fonts::from_files("./fonts", "Sansation", None).expect("Failed to load font family");
-//     // Create a document and set the default font family
-//     let mut doc = genpdf::Document::new(font_family);
-//     // Change the default settings
-//     doc.set_title("Demo document");
-//     // Customize the pages
-//     let mut decorator = genpdf::SimplePageDecorator::new();
-//     decorator.set_margins(10);
-//     doc.set_page_decorator(decorator);
-//     // Add one or more elements
-//     doc.push(genpdf::elements::Paragraph::new("This is a demo document."));
-//     // Render the document and write it to a file
-//     doc.render_to_file("output.pdf").expect("Failed to write PDF file");
-//     Ok(())
-// }
 
 fn imprimir(coll:Collection<Document> )-> Result<(), Box<dyn std::error::Error>>{
-    let skin = make_skin();
-    
-    let font_family = genpdf::fonts::from_files("./fonts", "Sansation", None).expect("Failed to load font family");
-    let mut doc = genpdf::Document::new(font_family);
-    doc.set_title("Acap locacao");
-    let mut decorator = genpdf::SimplePageDecorator::new();
-    decorator.set_margins(10);
-    doc.set_page_decorator(decorator);
-    
 
 
     let validator = |input: &str| if input.chars().count() < 1 {
@@ -679,45 +585,33 @@ fn imprimir(coll:Collection<Document> )-> Result<(), Box<dyn std::error::Error>>
                     let result: mongodb::sync::Cursor<Document>=coll.find(doc! {"evento":evento.clone()}).run()?;
 
                     
-                    let paths=format!("./{}.txt",evento);
-                   
-                    let path: &Path=Path::new(&paths);
-                   
-                        let _=fs::remove_file(&path);
-                        let constent=fs::read_to_string(&path);
-
-
-                        match constent {
-                            Ok(mut _arquivo)=>{
-                                std::process::Command::new("clear").status().unwrap();
-                                let _=main();
-
-                            },
-                            Err(_erro)=>{
+                    // zip_vec_array (result);
+                                let mut exibir=String::new();
                                 let mut gravar=String::new();
 
-                                for (k,v) in zip_document_array(result).iter(){
-                                    gravar.push_str(format!("{color_green}{}{color_reset} | {color_cyan}{}{color_reset} \n", {
-                                        if v.len() < 10 {format!("0{}",v.len())}else{format!("{}",v.len())}
+                                for (k,v) in zip_vec_array(result).iter(){
+                                    exibir.push_str(format!("{color_green}{}{color_reset} | {color_cyan}{}{color_reset} \n", {
+                                        if v < &10 {format!("0{}",v)}else{format!("{}",v)}
                                     },{
                                         format!("{}{}",k," ".repeat(60-k.len()))
                                     }).as_str());
                                     //v
-                                    doc.push(genpdf::elements::Paragraph::new(format!("{} | {} | {:?}\n", {
-                                        if v.len() < 10 {format!("0{}",v.len())}else{format!("{}",v.len())}
+                                    gravar.push_str(format!("{} | {} \n", {
+                                        if v < &10 {format!("0{}",v)}else{format!("{}",v)}
                                     },{
                                         format!("{}{}",k," ".repeat(60-k.len()))
-                                    },v).as_str()));
+                                    }).as_str());
                                 }
+
+                                println!("{}",exibir);
                                 
-                                let _=run_app(skin.to_owned() ,gravar.as_str());
                                 //
                                 let imprimir=Confirm::new("Imprimir")
                                     .with_default(false)
                                     .prompt().ok().unwrap();
 
                                 if imprimir == true {
-                                    let _=fs::write(path,&gravar); 
+
                                     let default_printer = get_default_printer();
                                     if default_printer.is_some() {
                                         let _job_id = default_printer.unwrap().print(gravar.as_bytes(), PrinterJobOptions {
@@ -728,16 +622,12 @@ fn imprimir(coll:Collection<Document> )-> Result<(), Box<dyn std::error::Error>>
                                                 ("copies", "1"),
                                             ],
                                         });
-                                        // Err("...") or Ok(())
-    }
+                                    }
                                 }
-                                // doc.render_to_file(format!("{evento}.pdf")).expect("Failed to write PDF file");
                               
                                 std::process::Command::new("clear").status().unwrap();
 
-                                let _ =main();
-                            }
-                        }           
+                                let _ =main();           
                     }
                 }
 
