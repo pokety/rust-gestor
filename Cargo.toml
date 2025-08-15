@@ -4,13 +4,11 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-genpdf = "0.2.0"
 goto = "0.1.2"
 inline_colorization = "0.1.6"
 inquire = "0.7.5"
 printers = "2.2.0"
 serde = "1.0.188"
-termimad = "0.33.0"
 
 [dependencies.mongodb]
 version = "3.2.3"

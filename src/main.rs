@@ -314,6 +314,7 @@ fn procurar(coll :&Collection<Document> ) -> Result<(), Box<dyn std::error::Erro
 
                                         },
                                         Err(_err)=> {
+                                            
                                         }
                                     }
                             }
@@ -323,34 +324,49 @@ fn procurar(coll :&Collection<Document> ) -> Result<(), Box<dyn std::error::Erro
                         ]
                     },
                     _=>{
+
+                        println!();
                         let cursor = coll.find(doc! { "modelo":{ "$regex": &choice.as_str() } }).run()?;
             
-                        for result in cursor {
-                            
-                            match result {
-                                Ok(value) => {
-                                    match value {
-                                        doc => {
-                                            {
-                                                match doc.get("grupo").unwrap().as_null() {
-                                                    Some(_a) =>  println!(r"grupo:{color_green}...{color_reset}"),
-                                                    _ => println!(r"grupo:{color_green}{}{color_reset}",doc.get("grupo").unwrap().as_str().unwrap())
-                                                }  
-                                            }
-                                            println!(r"modelo:{color_cyan}{}{color_reset}", doc.get("modelo").unwrap().as_str().unwrap());
-                                            println!(r"patrimonio:{color_blue}{}{color_reset}",doc.get("patrimonio").unwrap().as_str().unwrap());
-                                            println!(r"evento:{color_red}{}{color_reset}",doc.get("evento").unwrap().as_str().unwrap());
-                                            println!(r"info:{color_red}{}{color_reset}",doc.get("info").unwrap().as_str().unwrap());
-                                            println!(r"{color_red}-------------------------------------------------------------{color_reset}");
-                                        }
-                                    }
-                                },
-                                _error => {
-                                    std::process::Command::new("clear").status().unwrap();
-                                    let _ =procurar(&coll);
-                                }
-                            }
+                        let mut exibir=String::new();
+                        
+
+                        for (k,v) in zip_vec_array(cursor).iter(){
+                            exibir.push_str(format!("{color_green}{}{color_reset} | {color_cyan}{}{color_reset} \n", {
+                                if v < &10 {format!("0{}",v)}else{format!("{}",v)}
+                            },{
+                                format!("{}{}",k," ".repeat(60-k.len()))
+                            }).as_str());
                         }
+
+                        println!("{}",exibir);
+
+                        // for result in cursor {
+
+                            // match result {
+                            //     Ok(value) => {
+                            //         match value {
+                            //             doc => {
+                            //                 {
+                            //                     match doc.get("grupo").unwrap().as_null() {
+                            //                         Some(_a) =>  println!(r"grupo:{color_green}...{color_reset}"),
+                            //                         _ => println!(r"grupo:{color_green}{}{color_reset}",doc.get("grupo").unwrap().as_str().unwrap())
+                            //                     }  
+                            //                 }
+                            //                 println!(r"modelo:{color_cyan}{}{color_reset}", doc.get("modelo").unwrap().as_str().unwrap());
+                            //                 println!(r"patrimonio:{color_blue}{}{color_reset}",doc.get("patrimonio").unwrap().as_str().unwrap());
+                            //                 println!(r"evento:{color_red}{}{color_reset}",doc.get("evento").unwrap().as_str().unwrap());
+                            //                 println!(r"info:{color_red}{}{color_reset}",doc.get("info").unwrap().as_str().unwrap());
+                            //                 println!(r"{color_red}-------------------------------------------------------------{color_reset}");
+                            //             }
+                            //         }
+                            //     },
+                            //     _error => {
+                            //         std::process::Command::new("clear").status().unwrap();
+                            //         let _ =procurar(&coll);
+                            //     }
+                            // }
+                        // }
                         let mut buffer = String::new();
                         stdin().read_line(&mut buffer)?;
                         std::process::Command::new("clear").status().unwrap();
