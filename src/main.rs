@@ -1,4 +1,4 @@
-use std::collections::{ HashMap, HashSet};
+use std::collections::{ HashSet};
 use printers::{ get_default_printer,common::base::job::PrinterJobOptions};
 
 use std::{thread, time};
@@ -9,89 +9,12 @@ use std::env::{self};
 use mongodb::{ bson::{doc, Document}, sync::{Client, Collection}};
 use inquire::{Text,error::InquireError, Select,Confirm, validator::{ Validation}};
 use inline_colorization::*;
+
+mod tools;
+use crate::tools::{tools::zip_vec_array,ModeloQtyNow,Preview};
+
 #[macro_use]
 extern crate goto;
-
-///mods
-
-
-fn zip_vec_array(document:mongodb::sync::Cursor<Document>)-> Vec<(std::string::String, i32)>{
-    
-    let mut lista_equipamento: HashMap<String, Vec<i32>> = HashMap::new();
-
-    for equipamento in document{
-        match equipamento { 
-            Ok(value) => {
-                if lista_equipamento.contains_key(value.get("modelo").unwrap().as_str().unwrap()) {
-                        
-                    if let Some(x) = lista_equipamento.get_mut(value.get("modelo").unwrap().as_str().unwrap()) {
-                        x.push(value.get("patrimonio").unwrap().as_str().unwrap().parse::<i32>().expect("errou carra"));
-                    }
-                    
-                }else{
-                    lista_equipamento.insert(value.get("modelo").unwrap().as_str().unwrap().to_string(),vec![value.get("patrimonio").unwrap().as_str().unwrap().parse::<i32>().expect("")] );
-                }
-            },
-            _error => {
-                std::process::Command::new("clear").status().unwrap();
-            }
-        }
-    }
-    
-    let mut sorted : Vec<(String,i32)>=vec!();
-    for arr in lista_equipamento {
-        sorted.push((arr.0,arr.1.len() as i32));
-    }
-    let _=sorted.sort_by(|a, b| a.0.cmp(&b.0));
-    
-    sorted
-
-}
-
-
-struct Preview {
-    arr:Vec<String>
-}
-
-impl Preview {
-    pub fn new()->Preview{
-        Preview { arr: vec![] }
-    }
-    pub fn add_preview(&mut self,element:String){
-        if !self.arr.contains(&element){
-            self.arr.push(element);
-        }
-    }
-    pub fn display_preview(&self){
-        for i in self.arr.clone(){
-            println!("{}",i);
-        }
-    }
-    pub fn _display_preview_str(&self)->String{
-        let mut concat: String=String::new();
-        for i in self.arr.clone(){
-            concat.push_str(format!("{} \n",i).as_str());
-        }
-        concat
-
-    }
-}
-
-struct ModeloQtyNow{
-    modelo:String,
-    qty:i8
-}
-
-impl ModeloQtyNow {
-    pub fn new()->ModeloQtyNow{
-        ModeloQtyNow { modelo: String::new(), qty: 0 }
-    }
-
-    pub fn update(&mut self,modelo:String,qty:i8){
-        self.modelo=modelo ;
-        self.qty=qty;
-    }
-}
 
 
 ////Saida
@@ -296,7 +219,7 @@ fn procurar(coll :&Collection<Document> ) -> Result<(), Box<dyn std::error::Erro
                                             }
                                             println!(r"modelo:{color_cyan}{}{color_reset}", doc.get("modelo").unwrap().as_str().unwrap());
                                             println!(r"patrimonio:{color_blue}{}{color_reset}",doc.get("patrimonio").unwrap().as_str().unwrap());
-                                            println!(r"evento:{color_red}{}{color_reset} data:{color_red}{}{color_reset}user:{color_red}{}{color_reset}",doc.get("evento").unwrap().as_str().unwrap(),doc.get("data").unwrap().as_str().unwrap(),doc.get("user").unwrap().as_str().unwrap());
+                                            println!(r"evento:{color_red}{}{color_reset} data:{color_red}{}{color_reset}usuario:{color_red}{}{color_reset}",doc.get("evento").unwrap().as_str().unwrap(),doc.get("data").unwrap().as_str().unwrap(),doc.get("user").unwrap().as_str().unwrap());
                                             {
                                                 if doc.get("ultimoevento").is_some(){
                                         
@@ -330,43 +253,16 @@ fn procurar(coll :&Collection<Document> ) -> Result<(), Box<dyn std::error::Erro
             
                         let mut exibir=String::new();
                         
-
-                        for (k,v) in zip_vec_array(cursor).iter(){
-                            exibir.push_str(format!("{color_green}{}{color_reset} | {color_cyan}{}{color_reset} \n", {
+                        for (k,v,patri) in zip_vec_array(cursor).iter(){
+                            exibir.push_str(format!("{color_green}{}{color_reset} | {color_cyan}{}{color_reset} \n{color_yellow}{:?}{color_reset}\n \n", {
                                 if v < &10 {format!("0{}",v)}else{format!("{}",v)}
                             },{
                                 format!("{}{}",k," ".repeat(60-k.len()))
-                            }).as_str());
+                            },patri).as_str());
+                            
                         }
-
                         println!("{}",exibir);
 
-                        // for result in cursor {
-
-                            // match result {
-                            //     Ok(value) => {
-                            //         match value {
-                            //             doc => {
-                            //                 {
-                            //                     match doc.get("grupo").unwrap().as_null() {
-                            //                         Some(_a) =>  println!(r"grupo:{color_green}...{color_reset}"),
-                            //                         _ => println!(r"grupo:{color_green}{}{color_reset}",doc.get("grupo").unwrap().as_str().unwrap())
-                            //                     }  
-                            //                 }
-                            //                 println!(r"modelo:{color_cyan}{}{color_reset}", doc.get("modelo").unwrap().as_str().unwrap());
-                            //                 println!(r"patrimonio:{color_blue}{}{color_reset}",doc.get("patrimonio").unwrap().as_str().unwrap());
-                            //                 println!(r"evento:{color_red}{}{color_reset}",doc.get("evento").unwrap().as_str().unwrap());
-                            //                 println!(r"info:{color_red}{}{color_reset}",doc.get("info").unwrap().as_str().unwrap());
-                            //                 println!(r"{color_red}-------------------------------------------------------------{color_reset}");
-                            //             }
-                            //         }
-                            //     },
-                            //     _error => {
-                            //         std::process::Command::new("clear").status().unwrap();
-                            //         let _ =procurar(&coll);
-                            //     }
-                            // }
-                        // }
                         let mut buffer = String::new();
                         stdin().read_line(&mut buffer)?;
                         std::process::Command::new("clear").status().unwrap();
@@ -616,12 +512,12 @@ fn imprimir(coll:Collection<Document> )-> Result<(), Box<dyn std::error::Error>>
                                 let mut exibir=String::new();
                                 let mut gravar=String::new();
 
-                                for (k,v) in zip_vec_array(result).iter(){
-                                    exibir.push_str(format!("{color_green}{}{color_reset} | {color_cyan}{}{color_reset} \n", {
+                                for (k,v ,patri) in zip_vec_array(result).iter(){
+                                    exibir.push_str(format!("{color_green}{}{color_reset} | {color_cyan}{}{color_reset} \n{color_yellow}{:?}{color_reset}\n\n", {
                                         if v < &10 {format!("0{}",v)}else{format!("{}",v)}
                                     },{
                                         format!("{}{}",k," ".repeat(60-k.len()))
-                                    }).as_str());
+                                    },patri).as_str());
                                     //v
                                     gravar.push_str(format!("{} | {} \n", {
                                         if v < &10 {format!("0{}",v)}else{format!("{}",v)}
