@@ -1,7 +1,7 @@
 use std::collections::{ HashSet};
 use printers::{ get_default_printer,common::base::job::PrinterJobOptions};
 
-use std::{thread, time};
+use std::{fs,thread, time};
 use std::io::{stdin};
 
 use std::env::{self};
@@ -513,11 +513,11 @@ fn imprimir(coll:Collection<Document> )-> Result<(), Box<dyn std::error::Error>>
                                 let mut gravar=String::new();
 
                                 for (k,v ,patri) in zip_vec_array(result).iter(){
-                                    exibir.push_str(format!("{color_green}{}{color_reset} | {color_cyan}{}{color_reset} \n{color_yellow}{:?}{color_reset}\n\n", {
+                                    exibir.push_str(format!("{color_green}{}{color_reset} | {color_cyan}{}{color_reset} \n{color_yellow}{}{color_reset}\n", {
                                         if v < &10 {format!("0{}",v)}else{format!("{}",v)}
                                     },{
                                         format!("{}{}",k," ".repeat(60-k.len()))
-                                    },patri).as_str());
+                                    },patri.into_iter().map(|i| format!("{}, ",i.to_string())).collect::<String>()).as_str());
                                     //v
                                     gravar.push_str(format!("{} | {} \n", {
                                         if v < &10 {format!("0{}",v)}else{format!("{}",v)}
@@ -541,7 +541,6 @@ fn imprimir(coll:Collection<Document> )-> Result<(), Box<dyn std::error::Error>>
                                     if default_printer.is_some() {
                                         let _job_id = default_printer.unwrap().print(gravar.as_bytes(), PrinterJobOptions {
                                             name: None,
-                                            // options are currently UNIX-only. see https://www.cups.org/doc/options.html
                                             raw_properties: &[
                                                 ("document-format", "application/vnd.cups-raw"),
                                                 ("copies", "1"),
@@ -549,7 +548,8 @@ fn imprimir(coll:Collection<Document> )-> Result<(), Box<dyn std::error::Error>>
                                         });
                                     }
                                 }
-                              
+                                let _=fs::write(format!("/home/pokety/files/{}.txt",evento.clone()), gravar);
+                                
                                 std::process::Command::new("clear").status().unwrap();
 
                                 let _ =main();   
