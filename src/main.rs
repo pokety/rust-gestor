@@ -11,7 +11,7 @@ use inquire::{Text,error::InquireError, Select,Confirm, validator::{ Validation}
 use inline_colorization::*;
 
 mod tools;
-use crate::tools::{tools::zip_vec_array,ModeloQtyNow,Preview};
+use crate::tools::{tools::zip_vec_array,tools::unzip_array_equipamentos,ModeloQtyNow,Preview};
 
 #[macro_use]
 extern crate goto;
@@ -187,7 +187,7 @@ fn procurar(coll :&Collection<Document> ) -> Result<(), Box<dyn std::error::Erro
     }
     let lista_modelo: HashSet<String> = modelo.into_iter().collect();
     let select_modelo: Result<String, InquireError> = Select::new("", lista_modelo.into_iter().collect())
-    .with_help_message(" ↑↓ Patrimonio ou Modelo!!")
+    .with_help_message(" ↑↓ Patrimonio ou Modelo!!") 
     .with_page_size(40)
     .prompt()
     .inspect_err(|_f| {
@@ -219,7 +219,7 @@ fn procurar(coll :&Collection<Document> ) -> Result<(), Box<dyn std::error::Erro
                                             }
                                             println!(r"modelo:{color_cyan}{}{color_reset}", doc.get("modelo").unwrap().as_str().unwrap());
                                             println!(r"patrimonio:{color_blue}{}{color_reset}",doc.get("patrimonio").unwrap().as_str().unwrap());
-                                            println!(r"evento:{color_red}{}{color_reset} data:{color_red}{}{color_reset}usuario:{color_red}{}{color_reset}",doc.get("evento").unwrap().as_str().unwrap(),doc.get("data").unwrap().as_str().unwrap(),doc.get("user").unwrap().as_str().unwrap());
+                                            println!(r"evento:{color_red}{}{color_reset} usuario:{color_red}{}{color_reset}",doc.get("evento").unwrap().as_str().unwrap(),doc.get("user").unwrap().as_str().unwrap());
                                             {
                                                 if doc.get("ultimoevento").is_some(){
                                         
@@ -237,7 +237,7 @@ fn procurar(coll :&Collection<Document> ) -> Result<(), Box<dyn std::error::Erro
 
                                         },
                                         Err(_err)=> {
-                                            
+                                            let _=main();
                                         }
                                     }
                             }
@@ -280,10 +280,52 @@ fn procurar(coll :&Collection<Document> ) -> Result<(), Box<dyn std::error::Erro
     Ok(())
 }
 
+//equipamento
+fn equipamento(coll:Collection<Document>)-> Result<(), Box<dyn std::error::Error>>{
+ 
+    let all = coll.find(doc! {}).run()?;
+    let mut modelo: Vec<String> = Vec::new();
+
+    for result in all {
+        let doc =result?;
+        modelo.push(doc.get("modelo").unwrap().as_str().unwrap().to_string());
+    }
+    let lista_modelo: HashSet<String> = modelo.into_iter().collect();
+    let select_modelo: Result<String, InquireError> = Select::new("", lista_modelo.into_iter().collect())
+    .with_help_message(" ↑↓ Patrimonio ou Modelo!!")
+    .with_page_size(40)
+    .prompt()
+    .inspect_err(|_f| {
+        let _=main();
+    });
+    let cursor = coll.find(doc! { "modelo": select_modelo.ok().unwrap().as_str() }).run()?;
+    
+    let mut exibir=String::new();
+
+      for (k,v,patri) in unzip_array_equipamentos(cursor).iter(){
+                            exibir.push_str(format!("{color_green}{}{color_reset} | {color_cyan}{}{color_reset} \n{color_yellow}{:?}{color_reset}\n \n", {
+                                if v < &10 {format!("0{}",v)}else{format!("{}",v)}
+                            },{
+                                format!("{}{}",k," ".repeat(60-k.len()))
+                            },patri).as_str());
+                            
+                        }
+                        println!("{}",exibir);
+
+                        let mut buffer = String::new();
+                        stdin().read_line(&mut buffer)?;
+                        std::process::Command::new("clear").status().unwrap();
+
+                        let _ =equipamento(coll);
+
+    Ok(())
+}
+
+
 //cadastrar
 fn cadastrar (coll:Collection<Document>  ) -> Result<(), Box<dyn std::error::Error>>{
     
-    let select_grupo  = Select::new("", vec!("IMAGEM".to_string(),"AUDIO".to_string(),"ENERGIA".to_string(),"COMUNICACAO".to_string()))
+    let select_grupo  = Select::new("", vec!("IMAGEM".to_string(),"AUDIO".to_string(),"ENERGIA".to_string(),"COMUNICACAO".to_string(),"FERRAMENTAS".to_string()))
     .with_help_message(" ↑↓ ESCOLHA O GRUPO!!")
     .with_page_size(40)
     .prompt()
@@ -404,6 +446,69 @@ fn deletar(coll:Collection<Document> )-> Result<(), Box<dyn std::error::Error>>{
 
     Ok(())
 }
+
+//RENOMEAR
+
+fn renomear(coll:Collection<Document> )-> Result<(), Box<dyn std::error::Error>>{
+
+    let validator = |input: &str| if input.chars().count() < 1 {
+            std::process::Command::new("clear").status().unwrap();
+            let _ =main();
+            Ok(Validation::Invalid("Invalido".into()))
+            
+        } else {
+        Ok(Validation::Valid)
+    };
+    
+    let informacao = Text::new("Novo nome:").with_page_size(40).with_validator(validator).prompt();
+
+
+
+    	loop{
+    		
+		    let patrimonio = Text::new("Patrimonio?")
+		        .with_page_size(40)
+		        .with_validator(validator)
+		        .prompt()
+		        .inspect_err(|_f| {
+		            let _=main();
+		        });
+
+
+		    match patrimonio {
+		            Ok(query) => {
+		                 let cursor = coll.find_one_and_update(doc! { "patrimonio":&query },doc! {"$set": doc! {"modelo": informacao.as_ref().unwrap()}}).run()?;
+		                
+		                match &cursor {
+		                    Some(_doc)=>{
+		                        std::process::Command::new("clear").status().unwrap();
+		                        println!(r"{color_green}Nome  atualizado{color_reset}", );
+		                        let ten_millis = time::Duration::from_millis(1000);
+		                        thread::sleep(ten_millis);
+		                        std::process::Command::new("clear").status().unwrap();
+		                        
+		                    },
+		                    None =>{
+		                        std::process::Command::new("clear").status().unwrap();
+		                        println!(r"{color_red}Nada alterado!!!{color_reset}");
+		                        let ten_millis = time::Duration::from_millis(1000);
+		                        thread::sleep(ten_millis);
+		                        std::process::Command::new("clear").status().unwrap();
+		                        let _=main();
+		                    }
+		                } 
+		            },
+		            _error =>{
+		                let _ = main();
+		            }
+		    }
+    	}
+     
+    
+    
+    Ok(())
+}
+
 
 //infor
 
@@ -548,13 +653,13 @@ fn imprimir(coll:Collection<Document> )-> Result<(), Box<dyn std::error::Error>>
                                         });
                                     }
                                 }
-                                let _=fs::write(format!("/home/pokety/files/{}.txt",evento.clone()), gravar);
+                                let _=fs::write(format!("/home/pokety/files/{}",evento.clone()), gravar);
                                 
                                 std::process::Command::new("clear").status().unwrap();
 
                                 let _ =main();   
 
-                    }
+                    } 
                 }
 
             },
@@ -577,11 +682,12 @@ fn main() -> mongodb::error::Result<()> {
    
     let options: Vec<&str> = vec![
         "Procurar",
+        "Equipamento",
     	// "Previas",
     	"Entrada",
     	"Saida",
     	"Imprimir",
-    	// "Renomear",
+    	"Renomear",
         //"OS_Ativas",
     	//"Grupos",
     	//"Grupos/Modelos",
@@ -600,10 +706,12 @@ fn main() -> mongodb::error::Result<()> {
         {
             match choice{
                 "Procurar"=>{let _= procurar(&my_coll);},
+                "Equipamento"=>{let _= equipamento(my_coll);},
                 "Cadastrar"=>{let _= cadastrar(my_coll);},
                 "Entrada"=>{let _= entrada(my_coll);},
                 "Saida"=>{let _= saida(my_coll);},
                 "Imprimir"=>{let _=imprimir(my_coll);},
+                "Renomear"=>{let _=renomear(my_coll);},
                 "Deletar"=>{let _= deletar(my_coll);},
                 "Info"=>{let _= info(my_coll);},
                 "EXIT"=>{std::process::exit(0x0100);},

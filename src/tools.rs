@@ -36,6 +36,39 @@ pub mod tools {
         sorted
 
     }
+
+    pub fn unzip_array_equipamentos(document:mongodb::sync::Cursor<Document>)-> Vec<(std::string::String, i32,Vec<i32>)>{
+
+        let mut lista_equipamento: HashMap<String, Vec<i32>> = HashMap::new();
+
+        for equipamento in document{
+            match equipamento { 
+                Ok(value) => {
+                    if lista_equipamento.contains_key(value.get("evento").unwrap().as_str().unwrap()) {
+                            
+                        if let Some(x) = lista_equipamento.get_mut(value.get("evento").unwrap().as_str().unwrap()) {
+                            x.push(value.get("patrimonio").unwrap().as_str().unwrap().parse::<i32>().expect(format!("{:?}-{:?}",value.get("patrimonio"),value.get("_id")).as_str()));
+                         
+                        }
+                    }else{
+                        lista_equipamento.insert(value.get("evento").unwrap().as_str().unwrap().to_string(),vec![value.get("patrimonio").unwrap().as_str().unwrap().parse::<i32>().expect("")] );
+                     
+                    }
+                },
+                _error => {
+                    std::process::Command::new("clear").status().unwrap();
+                }
+            }
+        }
+    
+        let mut sorted : Vec<(String,i32,Vec<i32>)>=vec!();
+        for arr in lista_equipamento {
+            sorted.push((arr.0,arr.1.len() as i32,arr.1));
+        }
+        let _=sorted.sort_by(|a, b| a.0.cmp(&b.0));
+        
+        sorted
+    }
 }
 
 
