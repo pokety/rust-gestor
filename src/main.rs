@@ -1,4 +1,5 @@
 use std::collections::{ HashSet};
+use std::ops::Not;
 use printers::{ get_default_printer,common::base::job::PrinterJobOptions};
 
 use std::{fs,thread, time};
@@ -11,7 +12,7 @@ use inquire::{Text,error::InquireError, Select,Confirm, validator::{ Validation}
 use inline_colorization::*;
 
 mod tools;
-use crate::tools::{tools::zip_vec_array,tools::unzip_array_equipamentos,ModeloQtyNow,Preview};
+use crate::tools::{tools::text_colorized,tools::logo,tools::zip_vec_array,tools::unzip_array_equipamentos,ModeloQtyNow,Preview};
 
 #[macro_use]
 extern crate goto;
@@ -19,6 +20,8 @@ extern crate goto;
 
 ////Saida
 fn saida(coll: Collection<Document>)-> Result<(), Box<dyn std::error::Error>>{
+    std::process::Command::new("clear").status().unwrap();
+    text_colorized(" saida ",color_bright_green,color_green);
     let mut modelo_qty=ModeloQtyNow::new();
     let mut prev: Preview=Preview::new();
     let all = coll.find(doc! {}).run()?;    
@@ -71,6 +74,7 @@ fn saida(coll: Collection<Document>)-> Result<(), Box<dyn std::error::Error>>{
             
             loop {
                 std::process::Command::new("clear").status().unwrap();
+                text_colorized("saida", color_bright_blue, color_blue);
                 prev.display_preview();
 
                 println!();
@@ -79,7 +83,7 @@ fn saida(coll: Collection<Document>)-> Result<(), Box<dyn std::error::Error>>{
                 println!("Evento:{color_yellow}{}{color_reset}",&event_d.as_ref().unwrap());
                 println!();
 
-                let query = Text::new("Patrimonio?").with_page_size(40).with_validator(validator)
+                let query = Text::new("Patrimonio?").with_page_size(40)
                 .prompt();
             
             match query {
@@ -122,40 +126,46 @@ Ok(())
 ////Entrada
 fn entrada(coll: Collection<Document>)-> Result<(), Box<dyn std::error::Error>>{
     let mut prev: Preview=Preview::new();
-    let validator = |input: &str| if input.chars().count() < 1 {
-        std::process::Command::new("clear").status().unwrap();
-        let _ =main();
-        Ok(Validation::Invalid("nao encontrado".into()))
+    // let validator = |input: &str| if input.chars().count() < 1 {
+    //     std::process::Command::new("clear").status().unwrap();
+    //     let _ =main();
+    //     Ok(Validation::Invalid("nao encontrado".into()))
         
-    } else {
-        Ok(Validation::Valid)
-    };
+    // } else {
+    //     Ok(Validation::Valid)
+    // };
     
     
     let mut status = true;
     
     while status {
         std::process::Command::new("clear").status().unwrap();
+       text_colorized("entrada",color_bright_green,color_green);
         prev.display_preview();
         println!();
-        let query = Text::new("Patrimonio?").with_page_size(40).with_validator(validator)
+        // .with_validator(validator)
+        let query = Text::new("Patrimonio?")
+        .with_page_size(40)
         .prompt();
     
-    match query {
+    match query{
         Ok(query) => {
-            let cursor = coll.find_one_and_update(doc! { "patrimonio":&query },doc! {"$set": doc! {"evento": "deposito"}}).run()?;
-            
-            match &cursor {
-                Some(doc)=>{
-                    prev.add_preview(format!(r"{color_green}{}{color_reset} {color_yellow} {}{color_reset} {color_green} {}{color_reset}",doc.get("patrimonio").unwrap().as_str().unwrap().to_string(),doc.get("evento").unwrap().as_str().unwrap().to_string(),doc.get("modelo").unwrap().as_str().unwrap().to_string()));
-                    // println!(r"modelo:{color_cyan}{}{color_reset}", doc.get("modelo").unwrap().as_str().unwrap());
-
-                },
-                None =>{
-                    prev.add_preview(format!(r"{} --{color_red}Nao cadastrado!!!{color_reset}",&query));
-                    // println!(r"modelo:{color_red}Nao cadastrado!!!{color_reset}");
-                }
-            } 
+            if query.is_empty().not(){
+                
+                let cursor = coll.find_one_and_update(doc! { "patrimonio":&query },doc! {"$set": doc! {"evento": "deposito"}}).run()?;
+                
+                match &cursor {
+                    Some(doc)=>{
+                        prev.add_preview(format!(r"{color_green}{}{color_reset} {color_yellow} {}{color_reset} {color_green} {}{color_reset}",doc.get("patrimonio").unwrap().as_str().unwrap().to_string(),doc.get("evento").unwrap().as_str().unwrap().to_string(),doc.get("modelo").unwrap().as_str().unwrap().to_string()));
+                        // println!(r"modelo:{color_cyan}{}{color_reset}", doc.get("modelo").unwrap().as_str().unwrap());
+    
+                    },
+                    None =>{
+                        prev.add_preview(format!(r"{} --{color_red}Nao cadastrado!!!{color_reset}",&query));
+                        // println!(r"modelo:{color_red}Nao cadastrado!!!{color_reset}");
+                    }
+                } 
+            }
         },
         _error =>{
             status=false;
@@ -169,6 +179,8 @@ Ok(())
 
 ////Procura
 fn procurar(coll :&Collection<Document> ) -> Result<(), Box<dyn std::error::Error>>{
+    std::process::Command::new("clear").status().unwrap();
+    text_colorized("procurar",color_bright_green,color_green);
     let validator = |input: &str| if input.chars().count() < 1 {
         std::process::Command::new("clear").status().unwrap();
         let _ =main();
@@ -282,7 +294,8 @@ fn procurar(coll :&Collection<Document> ) -> Result<(), Box<dyn std::error::Erro
 
 //equipamento
 fn equipamento(coll:Collection<Document>)-> Result<(), Box<dyn std::error::Error>>{
- 
+    std::process::Command::new("clear").status().unwrap();
+    text_colorized("equipamento",color_bright_green,color_green);
     let all = coll.find(doc! {}).run()?;
     let mut modelo: Vec<String> = Vec::new();
 
@@ -324,7 +337,8 @@ fn equipamento(coll:Collection<Document>)-> Result<(), Box<dyn std::error::Error
 
 //cadastrar
 fn cadastrar (coll:Collection<Document>  ) -> Result<(), Box<dyn std::error::Error>>{
-    
+    std::process::Command::new("clear").status().unwrap();
+    text_colorized("cadastrar",color_bright_green,color_green);
     let select_grupo  = Select::new("", vec!("IMAGEM".to_string(),"AUDIO".to_string(),"ENERGIA".to_string(),"COMUNICACAO".to_string(),"FERRAMENTAS".to_string()))
     .with_help_message(" ↑↓ ESCOLHA O GRUPO!!")
     .with_page_size(40)
@@ -338,15 +352,7 @@ fn cadastrar (coll:Collection<Document>  ) -> Result<(), Box<dyn std::error::Err
     modelo.push("NOVO".to_string());
     modelo.sort();
 
-    
-    let validator = |input: &str| if input.chars().count() < 1 {
-            std::process::Command::new("clear").status().unwrap();
-            let _ =main();
-            Ok(Validation::Invalid("Invalido".into()))
-            
-        } else {
-        Ok(Validation::Valid)
-    };
+
      
     for result  in all {
     let doc = result?;
@@ -370,7 +376,7 @@ fn cadastrar (coll:Collection<Document>  ) -> Result<(), Box<dyn std::error::Err
     match select_modelo {
         Ok(modelo)=>{
             let event_e: Result<_,_> =  match modelo.as_str(){
-                "NOVO"=>{ Text::new("Novo Modelo?").with_validator(validator).prompt().inspect_err(|_f| {
+                "NOVO"=>{ Text::new("Novo Modelo?").prompt().inspect_err(|_f| {
                     let _=main();
                 })},
                 "EXIT" => std::process::exit(0x0100),
@@ -379,27 +385,32 @@ fn cadastrar (coll:Collection<Document>  ) -> Result<(), Box<dyn std::error::Err
 
             loop {
                 
-                let query = Text::new("Patrimonio?").with_page_size(40).with_validator(validator)
+                let query = Text::new("Patrimonio?").with_page_size(40)
                 .prompt();
                 
                 match query {
                     Ok(query) => {
 
+                        if query.is_empty().not(){
 
-                        let cursor = coll.insert_one(doc!{"grupo":select_grupo.as_ref().unwrap().to_string(),"evento": "deposito","info":"","modelo":event_e.as_ref().unwrap(),"patrimonio":&query}).run();
-                       
-                       match cursor {
-                           
-                           Ok(_sucesso) =>{
-                                // std::process::Command::new("clear").status().unwrap();
-                                println!(r"{color_yellow} {} {color_reset} {} {color_green}  --->Cadastrado{color_reset}",&query,event_e.as_ref().unwrap());
-        
-                           },
-                           Err(_errro)=>{
-                                // std::process::Command::new("clear").status().unwrap();
-                                println!(r"modelo:{color_red}Ja Cadastrado{color_reset}");
-                           }
-                       }
+                            let cursor = coll.insert_one(doc!{"grupo":select_grupo.as_ref().unwrap().to_string(),"evento": "deposito","info":"","modelo":event_e.as_ref().unwrap(),"patrimonio":&query}).run();
+                            
+                            match cursor {
+                                
+                                Ok(_sucesso) =>{
+                                    // std::process::Command::new("clear").status().unwrap();
+                                    println!(r"{color_yellow} {} {color_reset} {} {color_green}  --->Cadastrado{color_reset}",&query,event_e.as_ref().unwrap());
+            
+                                },
+                                Err(_errro)=>{
+                                    // std::process::Command::new("clear").status().unwrap();
+                                    println!(r"modelo:{color_red}Ja Cadastrado{color_reset}");
+                                }
+                            }
+                        }else{
+                            let _=main();
+                        }
+
                     },
                     _error =>{
                         let _ =main();
@@ -416,27 +427,26 @@ fn cadastrar (coll:Collection<Document>  ) -> Result<(), Box<dyn std::error::Err
 
 //deletar
 fn deletar(coll:Collection<Document> )-> Result<(), Box<dyn std::error::Error>>{
+    std::process::Command::new("clear").status().unwrap();
+    text_colorized("deletar",color_bright_green,color_green);
 
-    let validator = |input: &str| if input.chars().count() < 1 {
-            std::process::Command::new("clear").status().unwrap();
-            let _ =main();
-            Ok(Validation::Invalid("Invalido".into()))
-            
-        } else {
-        Ok(Validation::Valid)
-    };
     
-    let patrimonio = Text::new("Patrimonio?").with_page_size(40).with_validator(validator).prompt();
+    let patrimonio = Text::new("Patrimonio?").with_page_size(40).prompt();
 
     match patrimonio {
 
         Ok(result)=>{
-            coll.delete_one(doc!{"patrimonio":result}).run()?;
-            println!("Deletado!!!");
-            let ten_millis = time::Duration::from_millis(3000);
-            thread::sleep(ten_millis);
-            std::process::Command::new("clear").status().unwrap();
-            let _=main();
+            if result.is_empty().not(){
+                coll.delete_one(doc!{"patrimonio":result}).run()?;
+                println!("Deletado!!!");
+                let ten_millis = time::Duration::from_millis(3000);
+                thread::sleep(ten_millis);
+                std::process::Command::new("clear").status().unwrap();
+                let _=main();  
+            }else{
+                std::process::Command::new("clear").status().unwrap();
+                let _=main();  
+            }
         },
         Err(_erro)=>{
             println!("Nada Deletado!!!");
@@ -450,17 +460,11 @@ fn deletar(coll:Collection<Document> )-> Result<(), Box<dyn std::error::Error>>{
 //RENOMEAR
 
 fn renomear(coll:Collection<Document> )-> Result<(), Box<dyn std::error::Error>>{
+    std::process::Command::new("clear").status().unwrap();
+    text_colorized("renomear",color_bright_green,color_green);
 
-    let validator = |input: &str| if input.chars().count() < 1 {
-            std::process::Command::new("clear").status().unwrap();
-            let _ =main();
-            Ok(Validation::Invalid("Invalido".into()))
-            
-        } else {
-        Ok(Validation::Valid)
-    };
     
-    let informacao = Text::new("Novo nome:").with_page_size(40).with_validator(validator).prompt();
+    let informacao = Text::new("Novo nome:").with_page_size(40).prompt();
 
 
 
@@ -468,7 +472,6 @@ fn renomear(coll:Collection<Document> )-> Result<(), Box<dyn std::error::Error>>
     		
 		    let patrimonio = Text::new("Patrimonio?")
 		        .with_page_size(40)
-		        .with_validator(validator)
 		        .prompt()
 		        .inspect_err(|_f| {
 		            let _=main();
@@ -477,26 +480,31 @@ fn renomear(coll:Collection<Document> )-> Result<(), Box<dyn std::error::Error>>
 
 		    match patrimonio {
 		            Ok(query) => {
-		                 let cursor = coll.find_one_and_update(doc! { "patrimonio":&query },doc! {"$set": doc! {"modelo": informacao.as_ref().unwrap()}}).run()?;
-		                
-		                match &cursor {
-		                    Some(_doc)=>{
-		                        std::process::Command::new("clear").status().unwrap();
-		                        println!(r"{color_green}Nome  atualizado{color_reset}", );
-		                        let ten_millis = time::Duration::from_millis(1000);
-		                        thread::sleep(ten_millis);
-		                        std::process::Command::new("clear").status().unwrap();
-		                        
-		                    },
-		                    None =>{
-		                        std::process::Command::new("clear").status().unwrap();
-		                        println!(r"{color_red}Nada alterado!!!{color_reset}");
-		                        let ten_millis = time::Duration::from_millis(1000);
-		                        thread::sleep(ten_millis);
-		                        std::process::Command::new("clear").status().unwrap();
-		                        let _=main();
-		                    }
-		                } 
+                        if query.is_empty().not(){
+                            let cursor = coll.find_one_and_update(doc! { "patrimonio":&query },doc! {"$set": doc! {"modelo": informacao.as_ref().unwrap()}}).run()?;
+                           
+                           match &cursor {
+                               Some(_doc)=>{
+                                   std::process::Command::new("clear").status().unwrap();
+                                   println!(r"{color_green}Nome  atualizado{color_reset}", );
+                                   let ten_millis = time::Duration::from_millis(1000);
+                                   thread::sleep(ten_millis);
+                                   std::process::Command::new("clear").status().unwrap();
+                                   
+                               },
+                               None =>{
+                                   std::process::Command::new("clear").status().unwrap();
+                                   println!(r"{color_red}Nada alterado!!!{color_reset}");
+                                   let ten_millis = time::Duration::from_millis(1000);
+                                   thread::sleep(ten_millis);
+                                   std::process::Command::new("clear").status().unwrap();
+                                   let _=main();
+                               }
+                           } 
+
+                        }else{
+                            let _=main();
+                        }
 		            },
 		            _error =>{
 		                let _ = main();
@@ -506,55 +514,52 @@ fn renomear(coll:Collection<Document> )-> Result<(), Box<dyn std::error::Error>>
      
     
     
-    Ok(())
+    // Ok(())
 }
 
 
 //infor
 
 fn info(coll:Collection<Document> )-> Result<(), Box<dyn std::error::Error>>{
-
-    let validator = |input: &str| if input.chars().count() < 1 {
-            std::process::Command::new("clear").status().unwrap();
-            let _ =main();
-            Ok(Validation::Invalid("Invalido".into()))
-            
-        } else {
-        Ok(Validation::Valid)
-    };
+    std::process::Command::new("clear").status().unwrap();
+    text_colorized("informacoes",color_bright_green,color_green);
     
     let patrimonio = Text::new("Patrimonio?")
         .with_page_size(40)
-        .with_validator(validator)
         .prompt()
         .inspect_err(|_f| {
             let _=main();
         });
-
-    let informacao = Text::new("Informacao?").with_page_size(40).with_validator(validator).prompt();
+   
+    let informacao = Text::new("Informacao?").with_page_size(40).prompt();
 
     match patrimonio {
             Ok(query) => {
-                 let cursor = coll.find_one_and_update(doc! { "patrimonio":&query },doc! {"$set": doc! {"info": informacao.unwrap()}}).run()?;
-                
-                match &cursor {
-                    Some(_doc)=>{
-                        std::process::Command::new("clear").status().unwrap();
-                        println!(r"{color_green}Informacoes atualizadas{color_reset}", );
-                        let ten_millis = time::Duration::from_millis(3000);
-                        thread::sleep(ten_millis);
-                        std::process::Command::new("clear").status().unwrap();
-                        let _=main();
-                    },
-                    None =>{
-                        std::process::Command::new("clear").status().unwrap();
-                        println!(r"{color_red}Nada alterado!!!{color_reset}");
-                        let ten_millis = time::Duration::from_millis(3000);
-                        thread::sleep(ten_millis);
-                        std::process::Command::new("clear").status().unwrap();
-                        let _=main();
-                    }
-                } 
+                if query.is_empty().not(){
+
+                    let cursor = coll.find_one_and_update(doc! { "patrimonio":&query },doc! {"$set": doc! {"info": informacao.unwrap()}}).run()?;
+                   
+                   match &cursor {
+                       Some(_doc)=>{
+                           std::process::Command::new("clear").status().unwrap();
+                           println!(r"{color_green}Informacoes atualizadas{color_reset}", );
+                           let ten_millis = time::Duration::from_millis(3000);
+                           thread::sleep(ten_millis);
+                           std::process::Command::new("clear").status().unwrap();
+                           let _=main();
+                       },
+                       None =>{
+                           std::process::Command::new("clear").status().unwrap();
+                           println!(r"{color_red}Nada alterado!!!{color_reset}");
+                           let ten_millis = time::Duration::from_millis(3000);
+                           thread::sleep(ten_millis);
+                           std::process::Command::new("clear").status().unwrap();
+                           let _=main();
+                       }
+                   } 
+                }else{
+                    let _ = main();
+                }
             },
             _error =>{
                 let _ = main();
@@ -567,19 +572,12 @@ fn info(coll:Collection<Document> )-> Result<(), Box<dyn std::error::Error>>{
 
 fn imprimir(coll:Collection<Document> )-> Result<(), Box<dyn std::error::Error>>{
     std::process::Command::new("clear").status().unwrap();
+    text_colorized("imprimir",color_bright_green,color_green);
 
-
-    let validator = |input: &str| if input.chars().count() < 1 {
-        std::process::Command::new("clear").status().unwrap();
-        let _ =main();
-        Ok(Validation::Invalid("Invalido".into()))
-        
-    } else {
-        Ok(Validation::Valid)
-    };
+  
 
     let mut modelo: Vec<String> = Vec::new();
-    modelo.push("Modelo/Patrimonio".to_string());
+    // modelo.push("Modelo/Patrimonio".to_string());
     modelo.sort();
 
     let all=coll.find(doc!{}).run()?;
@@ -598,7 +596,7 @@ fn imprimir(coll:Collection<Document> )-> Result<(), Box<dyn std::error::Error>>
         Ok(evento)=>{
             match evento.as_str() {
                 "Modelo/Patrimonio"=>{
-                    let query = Text::new("Modelo/Patrimonio?").with_page_size(40).with_validator(validator).prompt();
+                    let query = Text::new("Modelo/Patrimonio?").with_page_size(40).prompt();
                     let result=coll.find(doc! {"patrimonio":{ "$regex": query.unwrap()}}).run()?;
                     for equipamento in result{
                         match equipamento {
@@ -673,13 +671,18 @@ fn imprimir(coll:Collection<Document> )-> Result<(), Box<dyn std::error::Error>>
 fn main() -> mongodb::error::Result<()> {
     
     std::process::Command::new("clear").status().unwrap();
-    let client = Client::with_uri_str(env::args().nth(1).unwrap())?; 
+   
+    {
+        logo("logo");
 
+    }
+    let client = Client::with_uri_str(env::args().nth(1).unwrap())?; 
+    
     
     let my_coll: Collection<Document> = client.database("deposito2025").collection("audio_visual");
-
     
-   
+    
+    
     let options: Vec<&str> = vec![
         "Procurar",
         "Equipamento",
@@ -696,14 +699,13 @@ fn main() -> mongodb::error::Result<()> {
     	"Deletar",
     	//"Geral",
     	"EXIT",
-    ];
-    
-    let ans: Result<&str, InquireError> = Select::new("", options).with_help_message(" ↑↓ USE AS SETAS PARA ESCOLHER!!").with_page_size(40).prompt();
-
-
-    match ans {
-        Ok(choice) =>
-        {
+        ];
+        let ans: Result<&str, InquireError> = Select::new("", options).with_help_message(" ↑↓ USE AS SETAS PARA ESCOLHER!!").with_page_size(40).prompt();
+        
+        
+        match ans {
+            Ok(choice) =>
+            {
             match choice{
                 "Procurar"=>{let _= procurar(&my_coll);},
                 "Equipamento"=>{let _= equipamento(my_coll);},
