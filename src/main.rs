@@ -181,13 +181,8 @@ Ok(())
 fn procurar(coll :&Collection<Document> ) -> Result<(), Box<dyn std::error::Error>>{
     std::process::Command::new("clear").status().unwrap();
     text_colorized("procurar",color_bright_green,color_green);
-    let validator = |input: &str| if input.chars().count() < 1 {
-        std::process::Command::new("clear").status().unwrap();
-        let _ =main();
-        Ok(Validation::Invalid("nao encontrado Procurar".into()))
-    } else {
-        Ok(Validation::Valid)
-    };
+
+
     let all = coll.find(doc! {}).run()?;
   
     let mut modelo: Vec<String> = Vec::new();
@@ -211,7 +206,7 @@ fn procurar(coll :&Collection<Document> ) -> Result<(), Box<dyn std::error::Erro
             match choice.as_str() {
                     "patrimonio" =>{
                         gpoint!['begin:
-                            let query = Text::new("Patrimonio/modelo?").with_page_size(40).with_validator(validator)
+                            let query = Text::new("Patrimonio/modelo?").with_page_size(40)
                                 .prompt()
                                 .inspect_err(|_f| {
                                     let _=main();

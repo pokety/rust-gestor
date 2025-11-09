@@ -172,6 +172,7 @@ impl Preview {
     }
 }
 
+
 pub struct ModeloQtyNow{
     pub modelo:String,
     pub qty:i8
